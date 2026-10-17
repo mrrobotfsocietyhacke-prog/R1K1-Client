@@ -1,4 +1,4 @@
-name: Build R1K1 Client (Goregram)
+name: Build R1K1 Client (Forkgram)
 
 on:
   push:
@@ -9,28 +9,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Goregram
+      - name: Checkout Forkgram
         uses: actions/checkout@v4
         with:
-          repository: AmanoTeam/Goregram
+          repository: forkgram/TelegramAndroid
           submodules: true
           fetch-depth: 1
 
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r26d
-          add-to-path: true
-
-      # ЖЕСТКИЙ ФИКС: Ставим GCC через системный пакетный менеджер
-      - name: Install GCC and make
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc g++ make
-
       - name: Change App Name
         run: |
-          sed -i 's/<string name="AppName">Goregram<\/string>/<string name="AppName">R1K1.SYS<\/string>/' TMessagesProj/src/main/res/values/strings.xml
+          sed -i 's/<string name="AppName">Telegram<\/string>/<string name="AppName">R1K1.SYS<\/string>/' TMessagesProj/src/main/res/values/strings.xml
 
       - name: Fix gradlew permissions
         run: chmod +x gradlew
