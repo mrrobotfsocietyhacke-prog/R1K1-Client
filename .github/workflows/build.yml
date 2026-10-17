@@ -1,4 +1,4 @@
-name: Build R1K1 Client (Forkgram Debug)
+name: Build R1K1 Client (Forkgram Final)
 
 on:
   push:
@@ -16,18 +16,15 @@ jobs:
           submodules: true
           fetch-depth: 1
 
-      - name: Setup Python 3.10
+      # Ставим Python, но не трогаем системный, а даем GitHub самому выбрать версию
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pyyaml
 
-      - name: Fix gradlew permissions
-        run: chmod +x gradlew
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -35,5 +32,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build with Gradle (verbose)
-        run: ./gradlew assembleAfatRelease --stacktrace --info
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Собираем с флагом --stacktrace, чтобы увидеть ошибку Python, если она будет
+      - name: Build with Gradle
+        run: ./gradlew assembleAfatRelease --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: R1K1-Client-APK
+          path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
