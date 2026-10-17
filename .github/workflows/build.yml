@@ -1,4 +1,4 @@
-name: Build R1K1 Client (Forkgram + Swap)
+name: Build R1K1 Client (Forkgram + Swap + Meson)
 
 on:
   push:
@@ -16,7 +16,6 @@ jobs:
           submodules: true
           fetch-depth: 1
 
-      # ЖЕСТКИЙ ФИКС ПАМЯТИ: Создаем swap-файл на 20 ГБ
       - name: Set swap space
         uses: pierotofy/set-swap-space@master
         with:
@@ -32,6 +31,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyyaml
 
+      # ФИКС: Устанавливаем meson и ninja
+      - name: Install meson and ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -41,7 +46,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # Сборка
       - name: Build with Gradle
         run: ./gradlew assembleAfatRelease
 
