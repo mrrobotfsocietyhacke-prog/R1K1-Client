@@ -9,9 +9,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # 1. Клонируем оригинальный репозиторий (с подмодулями)
+      - name: Checkout Goregram
+        uses: actions/checkout@v4
         with:
+          repository: AmanoTeam/Goregram
           submodules: true
+          fetch-depth: 1
+          
+      # 2. Копируем твои измененные файлы (UserConfig.java) поверх оригинала
+      - name: Copy custom UserConfig
+        run: |
+          cp ${{ github.workspace }}/TMessagesProj/src/main/java/org/telegram/messenger/UserConfig.java /tmp/ 2>/dev/null || true
           
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -28,5 +37,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Telegram-APK
+          name: R1K1-Client-APK
           path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
