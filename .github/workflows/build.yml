@@ -15,23 +15,35 @@ jobs:
           repository: AmanoTeam/Goregram
           submodules: true
           fetch-depth: 1
-          
+
+      # 1. Устанавливаем NDK (нужен для C++ кода)
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+          add-to-path: true
+
+      # 2. Меняем название на R1K1.SYS
       - name: Change App Name
         run: |
           sed -i 's/<string name="AppName">Goregram<\/string>/<string name="AppName">R1K1.SYS<\/string>/' TMessagesProj/src/main/res/values/strings.xml
-          
+
+      # 3. Права на gradlew
       - name: Fix gradlew permissions
         run: chmod +x gradlew
-          
+
+      # 4. Java 17
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          
+
+      # 5. Сборка
       - name: Build with Gradle
         run: ./gradlew assembleAfatRelease
-        
+
+      # 6. Сохранение APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
