@@ -1,0 +1,133 @@
+package org.telegram.ui;
+
+import static org.telegram.messenger.LocaleController.getString;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
+
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.R;
+import org.telegram.messenger.ApplicationLoader;
+import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.BackDrawable;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.TextCheckCell;
+import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.UItem;
+import org.telegram.ui.Components.UniversalAdapter;
+import org.telegram.ui.Components.UniversalRecyclerView;
+
+import java.util.ArrayList;
+
+public class GeneralSettingsActivity extends BaseFragment {
+
+    private UniversalRecyclerView listView;
+
+    @Override
+    public View createView(Context context) {
+        actionBar.setBackButtonDrawable(new BackDrawable(false));
+        actionBar.setAllowOverlayTitle(true);
+        actionBar.setTitle(getString(R.string.SettingsGeneral));
+        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) {
+                    finishFragment();
+                }
+            }
+        });
+
+        FrameLayout contentView = new FrameLayout(context);
+        contentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray, resourceProvider));
+
+        listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, this::onLongClick);
+        contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
+
+        return fragmentView = contentView;
+    }
+
+    private void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {
+        UItem ghostMode = UItem.asCheck(0, getString(R.string.GhostMode)).setChecked(
+            MessagesController.getInstance(currentAccount).getMainSettings().getBoolean("ghostMode", false));
+        ghostMode.subtext = getString(R.string.GhostModeInfo);
+        items.add(ghostMode);
+
+        SharedPreferences mainConfig = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+        UItem displayExtraProfileInfo = UItem.asCheck(1, getString(R.string.DisplayExtraProfileInformation)).setChecked(
+            mainConfig.getBoolean("displayExtraProfileInformation", false));
+        displayExtraProfileInfo.subtext = getString(R.string.DisplayExtraProfileInformationInfo);
+        items.add(displayExtraProfileInfo);
+
+        UItem hideTopChatBars = UItem.asCheck(2, getString(R.string.HideTopChatBars)).setChecked(
+            mainConfig.getBoolean("hideTopChatBars", false));
+        hideTopChatBars.subtext = getString(R.string.HideTopChatBarsInfo);
+        items.add(hideTopChatBars);
+
+        UItem displayAdditionalMessageOptions = UItem.asCheck(3, getString(R.string.DisplayAdditionalMessageOptions)).setChecked(
+            mainConfig.getBoolean("displayAdditionalMessageOptions", false));
+        displayAdditionalMessageOptions.subtext = getString(R.string.DisplayAdditionalMessageOptionsInfo);
+        items.add(displayAdditionalMessageOptions);
+
+        UItem preferLegacyPasteBehavior = UItem.asCheck(4, getString(R.string.PreferLegacyPasteBehavior)).setChecked(
+            mainConfig.getBoolean("preferLegacyPasteBehavior", false));
+        preferLegacyPasteBehavior.subtext = getString(R.string.PreferLegacyPasteBehaviorInfo);
+        items.add(preferLegacyPasteBehavior);
+    }
+
+    private void onClick(UItem item, View view, int position, float x, float y) {
+        if (item.id == 0) {
+            SharedPreferences prefs = MessagesController.getInstance(currentAccount).getMainSettings();
+            boolean newValue = !prefs.getBoolean("ghostMode", false);
+            prefs.edit().putBoolean("ghostMode", newValue).apply();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(newValue);
+            }
+            listView.adapter.update(false);
+            if (newValue) {
+                BulletinFactory.of(this).createSimpleBulletin(R.raw.chats_infotip, getString(R.string.GhostMode)).show();
+            }
+        } else if (item.id == 1) {
+            SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+            boolean newValue = !prefs.getBoolean("displayExtraProfileInformation", false);
+            prefs.edit().putBoolean("displayExtraProfileInformation", newValue).apply();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(newValue);
+            }
+            listView.adapter.update(false);
+        } else if (item.id == 2) {
+            SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+            boolean newValue = !prefs.getBoolean("hideTopChatBars", false);
+            prefs.edit().putBoolean("hideTopChatBars", newValue).apply();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(newValue);
+            }
+            listView.adapter.update(false);
+        } else if (item.id == 3) {
+            SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+            boolean newValue = !prefs.getBoolean("displayAdditionalMessageOptions", false);
+            prefs.edit().putBoolean("displayAdditionalMessageOptions", newValue).apply();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(newValue);
+            }
+            listView.adapter.update(false);
+        } else if (item.id == 4) {
+            SharedPreferences prefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+            boolean newValue = !prefs.getBoolean("preferLegacyPasteBehavior", false);
+            prefs.edit().putBoolean("preferLegacyPasteBehavior", newValue).apply();
+            if (view instanceof TextCheckCell) {
+                ((TextCheckCell) view).setChecked(newValue);
+            }
+            listView.adapter.update(false);
+        }
+    }
+
+    private boolean onLongClick(UItem item, View view, int position, float x, float y) {
+        return false;
+    }
+}

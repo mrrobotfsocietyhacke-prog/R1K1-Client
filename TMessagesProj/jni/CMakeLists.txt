@@ -1,0 +1,356 @@
+cmake_minimum_required(VERSION 3.16)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_CXX_FLAGS "-DANDROID -g")
+set(CMAKE_C_FLAGS "-w -std=c11 -DANDROID -D_LARGEFILE_SOURCE=1 -g -Wno-error=implicit-function-declaration")
+set(CMAKE_ASM_FLAGS "${CFLAGS} -x assembler-with-cpp")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -fvisibility=hidden")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections -fvisibility=hidden -fvisibility-inlines-hidden")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--icf=safe -Wl,-Bsymbolic")
+
+if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
+    enable_language(ASM)
+else()
+    enable_language(ASM_NASM)
+endif()
+
+set(CAN_COMPILE_SME FALSE CACHE INTERNAL "Disable libyuv SME" FORCE)
+add_subdirectory(
+        third_party/libyuv
+        ${CMAKE_CURRENT_BINARY_DIR}/libyuv
+        EXCLUDE_FROM_ALL)
+
+# Abseil
+set(ABSL_PROPAGATE_CXX_STD ON)
+set(ABSL_BUILD_TESTING OFF)
+set(ABSL_ENABLE_INSTALL OFF)
+add_subdirectory(
+        third_party/absl
+        ${CMAKE_CURRENT_BINARY_DIR}/absl
+        EXCLUDE_FROM_ALL)
+
+add_library(webrtc_absl INTERFACE)
+target_link_libraries(webrtc_absl INTERFACE
+        absl::base
+        absl::strings
+        absl::str_format
+        absl::cord
+        absl::synchronization
+        absl::time
+        absl::status
+        absl::statusor
+        absl::hash
+        absl::flat_hash_map
+        absl::flat_hash_set
+        absl::flags
+        absl::flags_parse
+        absl::random_random
+        absl::random_distributions
+        absl::crc32c
+        absl::log
+        absl::check
+)
+
+add_library(avutil STATIC IMPORTED)
+set_target_properties(avutil PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/ffmpeg/build/${ANDROID_ABI}/lib/libavutil.a)
+
+add_library(avformat STATIC IMPORTED)
+set_target_properties(avformat PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/ffmpeg/build/${ANDROID_ABI}/lib/libavformat.a)
+
+add_library(avcodec STATIC IMPORTED)
+set_target_properties(avcodec PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/ffmpeg/build/${ANDROID_ABI}/lib/libavcodec.a)
+
+add_library(swresample STATIC IMPORTED)
+set_target_properties(swresample PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/ffmpeg/build/${ANDROID_ABI}/lib/libswresample.a)
+
+add_library(swscale STATIC IMPORTED)
+set_target_properties(swscale PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/ffmpeg/build/${ANDROID_ABI}/lib/libswscale.a)
+
+add_library(crypto STATIC IMPORTED)
+set_target_properties(crypto PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/libressl/build/${ANDROID_ABI}/crypto/libcrypto.a)
+
+add_library(ssl STATIC IMPORTED)
+set_target_properties(ssl PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/libressl/build/${ANDROID_ABI}/ssl/libssl.a)
+
+add_library(libvpx STATIC IMPORTED)
+set_target_properties(libvpx PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/libvpx/build/${ANDROID_ABI}/lib/libvpx.a)
+
+add_library(libdav1d STATIC IMPORTED)
+set_target_properties(libdav1d PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/dav1d/build/${ANDROID_ABI}/lib/libdav1d.a)
+
+add_library(tde2e STATIC IMPORTED)
+set_target_properties(tde2e PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/tde2e/${ANDROID_ABI}/libtde2e.a)
+
+add_library(tdutils STATIC IMPORTED)
+set_target_properties(tdutils PROPERTIES IMPORTED_LOCATION ${CMAKE_HOME_DIRECTORY}/tde2e/${ANDROID_ABI}/libtdutils.a)
+
+#tgnet
+add_library(tgnet STATIC
+        tgnet/ApiScheme.cpp
+        tgnet/BuffersStorage.cpp
+        tgnet/ByteArray.cpp
+        tgnet/ByteStream.cpp
+        tgnet/Connection.cpp
+        tgnet/ConnectionSession.cpp
+        tgnet/ConnectionsManager.cpp
+        tgnet/TLSHello.cpp
+        tgnet/ConnectionSocket.cpp
+        tgnet/Datacenter.cpp
+        tgnet/EventObject.cpp
+        tgnet/FileLog.cpp
+        tgnet/MTProtoScheme.cpp
+        tgnet/NativeByteBuffer.cpp
+        tgnet/Request.cpp
+        tgnet/Timer.cpp
+        tgnet/TLObject.cpp
+        tgnet/ProxyCheckInfo.cpp
+        tgnet/Handshake.cpp
+        tgnet/Config.cpp)
+target_compile_options(tgnet PUBLIC
+        -Wall -frtti -finline-functions -ffast-math -Oz)
+set_target_properties(tgnet PROPERTIES
+        ANDROID_ARM_MODE arm)
+target_compile_definitions(tgnet PUBLIC
+        HAVE_PTHREAD)
+target_include_directories(tgnet PUBLIC
+        libressl/include/)
+target_link_libraries(tgnet
+        crypto)
+
+#rlottie
+add_library(rlottie STATIC
+        rlottie/src/lottie/lottieanimation.cpp
+        rlottie/src/lottie/lottieitem.cpp
+        rlottie/src/lottie/lottiekeypath.cpp
+        rlottie/src/lottie/lottieloader.cpp
+        rlottie/src/lottie/lottiemodel.cpp
+        rlottie/src/lottie/lottieparser.cpp
+        rlottie/src/lottie/lottieproxymodel.cpp
+        rlottie/src/vector/freetype/v_ft_math.cpp
+        rlottie/src/vector/freetype/v_ft_raster.cpp
+        rlottie/src/vector/freetype/v_ft_stroker.cpp
+        rlottie/src/vector/pixman/vregion.cpp
+        rlottie/src/vector/stb/stb_image.cpp
+        rlottie/src/vector/vbezier.cpp
+        rlottie/src/vector/vbitmap.cpp
+        rlottie/src/vector/vbrush.cpp
+        rlottie/src/vector/vcompositionfunctions.cpp
+        rlottie/src/vector/vdasher.cpp
+        rlottie/src/vector/vdebug.cpp
+        rlottie/src/vector/vdrawable.cpp
+        rlottie/src/vector/vdrawhelper.cpp
+        rlottie/src/vector/vdrawhelper_neon.cpp
+        rlottie/src/vector/velapsedtimer.cpp
+        rlottie/src/vector/vimageloader.cpp
+        rlottie/src/vector/vinterpolator.cpp
+        rlottie/src/vector/vmatrix.cpp
+        rlottie/src/vector/vpainter.cpp
+        rlottie/src/vector/vpath.cpp
+        rlottie/src/vector/vpathmesure.cpp
+        rlottie/src/vector/vraster.cpp
+        rlottie/src/vector/vrect.cpp
+        rlottie/src/vector/vrle.cpp)
+target_compile_options(rlottie PUBLIC
+        -Wall -fno-rtti -finline-functions -ffast-math -Oz -fno-unwind-tables -fno-asynchronous-unwind-tables -Wnon-virtual-dtor -Woverloaded-virtual -Wno-unused-parameter -fvisibility=hidden)
+set_target_properties(rlottie PROPERTIES
+        ANDROID_ARM_MODE arm)
+target_compile_definitions(rlottie PUBLIC
+        HAVE_PTHREAD NDEBUG)
+target_include_directories(rlottie PUBLIC
+        ./
+        rlottie/inc
+        rlottie/src/vector/
+        rlottie/src/vector/pixman
+        rlottie/src/vector/freetype
+        rlottie/src/vector/stb)
+
+if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
+    target_compile_definitions(rlottie PUBLIC
+            USE_ARM_NEON)
+    target_sources(rlottie PRIVATE
+            rlottie/src/vector/pixman/pixman-arm-neon-asm.S)
+elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
+    target_compile_definitions(rlottie PUBLIC
+            USE_ARM_NEON __ARM64_NEON__)
+    target_sources(rlottie PRIVATE
+            rlottie/src/vector/pixman/pixman-arma64-neon-asm.S)
+endif()
+
+#sqlite
+add_library(sqlite STATIC
+        sqlite/sqlite3.c)
+target_compile_options(sqlite PUBLIC
+        -fno-strict-aliasing -Oz)
+set_target_properties(sqlite PROPERTIES
+        ANDROID_ARM_MODE arm)
+target_compile_definitions(sqlite PUBLIC
+        NULL=0 SOCKLEN_T=socklen_t LOCALE_NOT_USED ANDROID_NDK DISABLE_IMPORTGL AVOID_TABLES ANDROID_TILE_BASED_DECODE HAVE_STRCHRNUL=0 ANDROID_ARMV6_IDCT)
+
+#breakpad
+add_library(breakpad STATIC
+        third_party/breakpad/src/client/linux/crash_generation/crash_generation_client.cc
+        third_party/breakpad/src/client/linux/handler/exception_handler.cc
+        third_party/breakpad/src/client/linux/handler/minidump_descriptor.cc
+        third_party/breakpad/src/client/linux/log/log.cc
+        third_party/breakpad/src/client/linux/dump_writer_common/thread_info.cc
+        third_party/breakpad/src/client/linux/dump_writer_common/seccomp_unwinder.cc
+        third_party/breakpad/src/client/linux/dump_writer_common/ucontext_reader.cc
+        third_party/breakpad/src/client/linux/microdump_writer/microdump_writer.cc
+        third_party/breakpad/src/client/linux/minidump_writer/linux_dumper.cc
+        third_party/breakpad/src/client/linux/minidump_writer/linux_ptrace_dumper.cc
+        third_party/breakpad/src/client/linux/minidump_writer/minidump_writer.cc
+        third_party/breakpad/src/client/minidump_file_writer.cc
+        third_party/breakpad/src/common/android/breakpad_getcontext.S
+        third_party/breakpad/src/common/convert_UTF.c
+        third_party/breakpad/src/common/md5.cc
+        third_party/breakpad/src/common/string_conversion.cc
+        third_party/breakpad/src/common/linux/elfutils.cc
+        third_party/breakpad/src/common/linux/file_id.cc
+        third_party/breakpad/src/common/linux/guid_creator.cc
+        third_party/breakpad/src/common/linux/linux_libc_support.cc
+        third_party/breakpad/src/common/linux/memory_mapped_file.cc
+        third_party/breakpad/src/common/linux/safe_readlink.cc)
+set_target_properties(breakpad PROPERTIES ANDROID_ARM_MODE arm)
+set_property(SOURCE third_party/breakpad/src/common/android/breakpad_getcontext.S PROPERTY LANGUAGE C)
+target_include_directories(breakpad PUBLIC
+        third_party/breakpad/src/common/android/include
+        third_party/breakpad/src)
+
+
+#voip
+include(${CMAKE_HOME_DIRECTORY}/voip/CMakeLists.txt)
+
+#libopus
+add_subdirectory(
+        third_party/xiph/opus
+        ${CMAKE_CURRENT_BINARY_DIR}/opus
+        EXCLUDE_FROM_ALL)
+
+#libogg (generates ogg/config_types.h, required by os_types.h on Android)
+add_subdirectory(
+        third_party/xiph/ogg
+        ${CMAKE_CURRENT_BINARY_DIR}/ogg
+        EXCLUDE_FROM_ALL)
+
+
+set(NATIVE_LIB "tmessages.49")
+
+#tmessages
+add_library(${NATIVE_LIB} SHARED
+        jni.c
+        audio.c
+        webm_encoder.c
+        image.cpp
+        intro/IntroRenderer.c
+        SqliteWrapper.cpp
+        utilities.cpp
+        gifvideo.cpp
+        lottie.cpp
+        TgNetWrapper.cpp
+        ffmpeg_jni.cc
+        fast-edge.cpp
+        genann.c
+        secureid_ocr.cpp
+        tde2e/bridge.cpp
+        tests.cpp
+)
+
+target_compile_options(${NATIVE_LIB} PUBLIC
+        -ffast-math -Oz -funroll-loops -ffast-math -fno-strict-aliasing -fno-math-errno)
+
+target_compile_definitions(${NATIVE_LIB} PUBLIC
+        BSD=1 NULL=0 SOCKLEN_T=socklen_t ANDROID_NDK DISABLE_IMPORTGL AVOID_TABLES ANDROID_TILE_BASED_DECODE __STDC_CONSTANT_MACROS ANDROID_ARMV6_IDCT)
+
+if (${ANDROID_ABI} STREQUAL "armeabi-v7a")
+    set_target_properties(${NATIVE_LIB} PROPERTIES
+            ANDROID_ARM_NEON FALSE
+            ANDROID_ARM_MODE arm)
+    target_compile_definitions(${NATIVE_LIB} PUBLIC
+            ANDROID_ARM_NEON=false)
+else()
+    set_target_properties(${NATIVE_LIB} PROPERTIES
+            ANDROID_ARM_NEON FALSE
+            ANDROID_ARM_MODE arm)
+endif()
+
+if (${ANDROID_ABI} STREQUAL "armeabi-v7a" OR ${ANDROID_ABI} STREQUAL "arm64-v8a")
+    target_compile_definitions(${NATIVE_LIB} PUBLIC
+            LIBYUV_NEON)
+endif()
+
+target_sources(${NATIVE_LIB} PRIVATE
+
+        third_party/xiph/opusfile/src/info.c
+        third_party/xiph/opusfile/src/internal.c
+        third_party/xiph/opusfile/src/opusfile.c
+        third_party/xiph/opusfile/src/stream.c)
+
+target_include_directories(${NATIVE_LIB} PUBLIC
+        third_party/xiph/opus/include
+        third_party/xiph/opus/silk
+        third_party/xiph/opus/silk/fixed
+        third_party/xiph/opus/celt
+        third_party/xiph/opus
+        third_party/xiph/opusfile/include
+        third_party/xiph/ogg/include
+        third_party/libyuv/include
+        third_party/absl
+        libressl/include
+        ffmpeg/build/${ANDROID_ABI}/include
+        ffmpeg/libavformat
+        libvpx/build/${ANDROID_ABI}/include
+        emoji
+        intro
+        tgcalls/
+        webrtc/
+        tdlib/tde2e
+        tdlib/tde2e/td/e2e
+)
+
+target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,max-page-size=16384")
+target_link_options(${NATIVE_LIB} PRIVATE "-Wl,-z,common-page-size=16384")
+target_link_options(${NATIVE_LIB} PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exports.map")
+target_link_libraries(${NATIVE_LIB}
+        -Wl,--whole-archive rnnoise openh264 voipandroid -Wl,--no-whole-archive
+        webrtc_absl
+        tgcalls
+        wasm
+        tgcalls_tp
+        tgnet
+        rlottie
+        sqlite
+        swscale
+        avformat
+        avcodec
+        swresample
+        libvpx
+        libdav1d
+        opus
+        ogg
+        tde2e
+        tdutils
+        yuv
+        avutil
+        ssl
+        crypto
+        jnigraphics
+        log
+        z
+        GLESv2
+        EGL
+        android
+        OpenSLES
+        cpufeatures
+        breakpad)
+
+#if (${ANDROID_ABI} STREQUAL "x86" OR ${ANDROID_ABI} STREQUAL "x86_64")
+#    target_link_libraries(${NATIVE_LIB}
+#            -Wl,--whole-archive vpxasm -Wl,--no-whole-archive
+#            c)
+#endif()
+
+include(AndroidNdkModules)
+android_ndk_import_module_cpufeatures()

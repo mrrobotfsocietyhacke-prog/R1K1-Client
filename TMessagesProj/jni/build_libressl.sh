@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -e
+
+function build_one {
+	mkdir ${CPU}
+	cd ${CPU}
+
+	echo "Configuring..."
+	cmake \
+	-DANDROID_NATIVE_API_LEVEL=${API} \
+	-DANDROID_ABI=${CPU} \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DANDROID_NDK=${NDK} \
+	-DCMAKE_TOOLCHAIN_FILE=${NDK}/build/cmake/android.toolchain.cmake \
+	-DLIBRESSL_SKIP_INSTALL=ON \
+	-DLIBRESSL_APPS=OFF \
+	-DLIBRESSL_TESTS=OFF \
+	-DENABLE_NC=OFF \
+	-DENABLE_ASM=ON \
+	../..
+
+	echo "Building..."
+	cmake --build .
+
+	cd ..
+}
+
+function checkPreRequisites {
+
+	if ! [ -d "libressl" ] || ! [ "$(ls -A libressl)" ]; then
+		echo -e "\033[31mFailed! Submodule 'libressl' not found!\033[0m"
+		echo -e "\033[31mTry to run: 'git submodule init && git submodule update'\033[0m"
+		exit
+	fi
+
+	if [ -z "$NDK" -a "$NDK" == "" ]; then
+		echo -e "\033[31mFailed! NDK is empty. Run 'export NDK=[PATH_TO_NDK]'\033[0m"
+		exit
+	fi
+}
+
+ANDROID_NDK=$NDK
+checkPreRequisites
+
+cd libressl
+
+if [ ! -f include/openssl/aes.h ] || [ ! -f configure ]; then
+	echo "Bootstrapping LibreSSL portable sources..."
+	./update.sh
+	./autogen.sh
+fi
+
+rm -rf build
+mkdir build
+cd build
+
+function build {
+	for arg in "$@"; do
+		case "${arg}" in
+			arm64)
+				API=21
+				CPU=arm64-v8a
+				build_one
+			;;
+			arm)
+				API=21
+				CPU=armeabi-v7a
+				build_one
+			;;
+			*)
+			;;
+		esac
+	done
+}
+
+if (( $# == 0 )); then
+	build arm64 arm
+else
+	build $@
+fi
