@@ -1,4 +1,4 @@
-name: Build R1K1 Client (Forkgram + Rust)
+name: Build R1K1 Client (Final Rust Fix)
 
 on:
   push:
@@ -36,9 +36,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y meson ninja-build
 
-      # ФИКС: Установка Rust, таргетов и cargo-ndk
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      # ФИКС: Устанавливаем конкретную версию Rust (1.96.1) и таргеты для нее
+      - name: Setup Rust 1.96.1
+        uses: dtolnay/rust-toolchain@1.96.1
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
 
