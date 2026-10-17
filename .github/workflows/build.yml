@@ -1,4 +1,4 @@
-name: Build R1K1 Client
+name: Build R1K1 Client (Goregram)
 
 on:
   push:
@@ -22,18 +22,11 @@ jobs:
           ndk-version: r26d
           add-to-path: true
 
-      - name: Install AmanoTeam GCC Toolchain
+      # ЖЕСТКИЙ ФИКС: Ставим GCC через системный пакетный менеджер
+      - name: Install GCC and make
         run: |
-          curl -L -o gcc.tar.xz https://github.com/AmanoTeam/android-gcc-cross/releases/latest/download/x86_64-unknown-linux-gnu.tar.xz
-          mkdir -p /tmp/android-gcc-cross
-          tar -xf gcc.tar.xz -C /tmp/android-gcc-cross
-          echo "PINO_HOME=/tmp/android-gcc-cross" >> $GITHUB_ENV
-          echo "PINO_LTO=full" >> $GITHUB_ENV
-          echo "PINO_OPT_LEVEL=2" >> $GITHUB_ENV
-
-      - name: Patch NDK to use GCC
-        run: |
-          /tmp/android-gcc-cross/bin/ndk-patch
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ make
 
       - name: Change App Name
         run: |
